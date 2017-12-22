@@ -8,3 +8,4 @@ export { EcomWishlistService } from './modules/ecom/providers/wishlist';
 
 export { PosModule } from './modules/pos/pos.module';
 export { PosProductService } from './modules/pos/providers/product';
+export { PosRedux } from './modules/pos/providers/redux';

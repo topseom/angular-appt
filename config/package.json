@@ -1,10 +1,12 @@
 {
   "name": "ng-appt",
-  "version": "0.0.3",
+  "version": "0.0.10",
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ng-prov": "^0.0.42"
+    "ng-prov": "^0.0.42",
+    "@ngrx/core": "1.2.0",
+    "@ngrx/store": "4.1.1"
   },
   "devDependencies": {},
   "scripts": {

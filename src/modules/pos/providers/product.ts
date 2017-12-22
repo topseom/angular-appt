@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
 import { AlertController,LoadingController,ToastController,Events } from 'ionic-angular';
-import { DataService,QueryService,StorageService,SiteService,table } from 'ng-prov';
+import { DataService,QueryService,StorageService,AuthService,table } from 'ng-prov';
 import * as tsmoment from 'moment';
 const moment = tsmoment;
 import 'rxjs/add/operator/map';
+
+import { PosRedux } from './redux';
 
 export class PaymentMethod{
   method:string;
@@ -34,7 +36,7 @@ export class OrderListArray{
   time = moment().format('LT');
   selectItem = 0;
   cart = [];
-  pageView = {pageView:"product",component:"product"};
+  pageView = {page_view:"product",component:"product"};
   customer = {
     username:"guest"
   };
@@ -61,7 +63,6 @@ export class OrderListArray{
 
 @Injectable()
 export class PosProductService{
-  //dataSet = ["product_list","product_category","product_barcode","product_single"];
   
   dataSet = [
       {data:table.product_list},
@@ -85,7 +86,7 @@ export class PosProductService{
   textToastAddProduct = "add product into cart!";
 
   ToastTimeOut = 300;
-  constructor(public _data:DataService,public _site:SiteService,public _storage:StorageService,public loadingCtrl:LoadingController,public toastCtrl:ToastController,public _query:QueryService,public alertCtrl:AlertController,public events:Events){}
+  constructor(public redux:PosRedux,public _data:DataService,public _storage:StorageService,public _auth:AuthService,public loadingCtrl:LoadingController,public toastCtrl:ToastController,public _query:QueryService,public alertCtrl:AlertController,public events:Events){}
   
   //LoadDataSet
   loadData(force=false){
@@ -116,13 +117,10 @@ export class PosProductService{
                       }); 
                   }
                 });
-                resolve(items);
-            }else{
-              resolve(items);
             }
-          }else{
-            resolve(items);
           }
+          this.redux.changeProducts({ product_list: items,temp: items});
+          resolve(items);
         });
       });
     });
@@ -136,10 +134,10 @@ export class PosProductService{
       if(pageView){
           this.getOrderSelected().then(order=>{
             if(order){
-              let page = {pageView:"product",component:pageView};
+              let page = {page_view:"product",component:(pageView as any)};
               order.pageView = page;
               this.setOrderSelected(order).then(finish=>{
-                this.events.publish("pageView",page);
+                this.redux.changePage(page);
                 resolve(1);
               });
             }else{
@@ -164,7 +162,7 @@ export class PosProductService{
     });
   }
   changeProductPageViewInner(pageView:any){
-    this.events.publish("pageView",pageView);
+    this.redux.changePage(pageView);
   }
 
 
@@ -225,11 +223,9 @@ export class PosProductService{
   }
 
 
-
-  //Order List
   orderListInit(){
     return new Promise<any>((resolve,reject)=>{
-      this._site.getUser().then(user=>{
+      this._auth.getUser().then(user=>{
           this.getStore().then(store=>{
             user = user || false;
             let orderNew = new OrderListArray(1,user,store);
@@ -249,7 +245,7 @@ export class PosProductService{
       this.getOrderList().then(order=>{
         if(order){
           let no = (order.array[order.array.length-1].no)+1;
-          this._site.getUser().then(user=>{
+          this._auth.getUser().then(user=>{
             this.getStore().then(store=>{
               user = user || false;
               let orderNew = new OrderListArray(no,user,store);
@@ -269,13 +265,14 @@ export class PosProductService{
       });
     });
   }
+  
   orderListSelect(index:number){
      return new Promise<any>((resolve,reject)=>{
         this.getOrderList().then(order=>{
            if(order){
              order.select = index;
              this.setOrderList(order).then(callback=>{
-               this.changeProductPageViewInner(order.array[order.select].pageView);
+              this.changeProductPageViewInner(order.array[order.select].pageView);
                resolve(order);
              });
            }else{ 
@@ -301,7 +298,7 @@ export class PosProductService{
                  order.select = noRemove-1; 
                }
                this.setOrderList(order).then(callback=>{
-                 this.changeProductPageViewInner(order.array[order.select].pageView);
+                this.changeProductPageViewInner(order.array[order.select].pageView);
                  resolve(order);
                });
              }
@@ -311,11 +308,14 @@ export class PosProductService{
         });
      });
   }
-  setOrderList(order:OrderList){
+  setOrderList(order:OrderList,updateOrder=true){
     return new Promise<any>((resolve,reject)=>{
       this.getStore().then(store=>{
         store = store.id || "none";
         this._storage.setLocal(this.storeOrderList+'_'+store,order).then(callback=>{
+          if(updateOrder){
+            this.redux.changeOrders(order);
+          }
           resolve(1);
         });
       });
@@ -349,6 +349,7 @@ export class PosProductService{
     });
   }
   setOrderSelected(order:OrderListArray){
+    //console.log("aabbcc");
     return new Promise<OrderListArray>((resolve,reject)=>{
       this.getOrderList().then(callback=>{
         if(callback){
@@ -526,6 +527,19 @@ export class PosProductService{
       });
     });
   }
+  
+  changeProductSort(sort:string){
+		if(sort){
+			let toast = this.toastCtrl.create({
+				message : "Sort "+sort+" Complete !",
+				duration : 300,
+				position : "top"
+      });
+      this.redux.changeProducts({sort:sort});
+      toast.present();
+      
+		}
+	}
  
 
 
@@ -919,6 +933,9 @@ export class PosProductService{
   product_categories_list({product=[],cate_id=[]}){
     return new Promise<any>((resolve,reject)=>{
        this._query.product_categories_list({product,cate_id}).then(callback=>{
+         if(callback){
+          this.redux.changeProducts({ product_list:callback });
+         }
          resolve(callback);
        });
     });
@@ -928,4 +945,5 @@ export class PosProductService{
 
 
 }
+
 
