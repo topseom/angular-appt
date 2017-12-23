@@ -8,9 +8,21 @@ import { productsReducer } from './reducers/products';
 
 import { StoreModule } from '@ngrx/store';
 
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgxDatatableModule } from '@swimlane/ngx-datatable';
+import { NgxChartsModule } from '@swimlane/ngx-charts';
+
 @NgModule({
     imports:[
-        StoreModule.forRoot({ navigation:navigationReducer,orders:ordersReducer,products:productsReducer })
+        StoreModule.forRoot({ navigation:navigationReducer,orders:ordersReducer,products:productsReducer }),
+        BrowserAnimationsModule,
+        NgxDatatableModule,
+        NgxChartsModule
+    ],
+    exports:[
+        BrowserAnimationsModule,
+        NgxDatatableModule,
+        NgxChartsModule
     ],
     providers:[
         PosProductService,
