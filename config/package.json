@@ -1,6 +1,6 @@
 {
   "name": "ng-appt",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "",
   "main": "index.js",
   "dependencies": {
@@ -10,6 +10,7 @@
     "@ngrx/store": "4.1.1",
     "@swimlane/ngx-charts": "7.0.1",
     "@swimlane/ngx-datatable": "11.1.7",
+    "ngx-swiper-wrapper": "5.2.0",
     "core-js": "2.5.3"
   },
   "devDependencies": {},
