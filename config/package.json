@@ -1,15 +1,15 @@
 {
   "name": "ng-appt",
-  "version": "0.0.12",
+  "version": "0.0.14",
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "ng-prov": "^0.0.42",
     "@angular/animations": "5.0.3",
     "@ngrx/core": "1.2.0",
     "@ngrx/store": "4.1.1",
     "@swimlane/ngx-charts": "7.0.1",
     "@swimlane/ngx-datatable": "11.1.7",
+    "@ionic-native/paypal": "4.5.2",
     "ngx-swiper-wrapper": "5.2.0",
     "core-js": "2.5.3"
   },

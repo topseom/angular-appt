@@ -942,6 +942,25 @@ export class PosProductService{
   }
 
 
+  order_search(begin,end,temp){
+    return new Promise((resolve,reject)=>{
+      let orders;
+      if(begin && !end){
+        orders = temp.filter(function(o){ return o.created.indexOf(begin) != -1 });
+        resolve(orders);
+      }else if(begin && end){
+        begin = moment(begin).format('YYYY-MM-DD HH:mm:ss');
+        end = moment(end).add(1, 'days').format('YYYY-MM-DD HH:mm:ss');
+        orders = temp.filter(function(o){
+          return parseInt(moment(o.created).format('x')) >= parseInt(moment(begin).format('x')) && parseInt(moment(o.created).format('x')) <= parseInt(moment(end).format('x'))
+        });
+        resolve(orders);
+      }else{
+        resolve(0);
+      }
+    });
+  }
+
 
 
 }

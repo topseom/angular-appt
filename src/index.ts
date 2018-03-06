@@ -9,3 +9,8 @@ export { EcomWishlistService } from './modules/ecom/providers/wishlist';
 export { PosModule } from './modules/pos/pos.module';
 export { PosProductService } from './modules/pos/providers/product';
 export { PosRedux } from './modules/pos/providers/redux';
+
+export { ListingModule } from './modules/listing/listing.module';
+export { ListingWishlistService } from './modules/listing/providers/wishlist';
+
+export { Menu } from './config/menu-erp';
