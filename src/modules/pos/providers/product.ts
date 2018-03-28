@@ -171,7 +171,7 @@ export class PosProductService{
   // Load Store
   loadStore(){
     return new Promise((resolve,reject)=>{
-      this._query.product_store({load:true}).then(store=>{
+      this._data.product_store({load:true,offlineMode:false}).then(store=>{
         if(store){
           store.forEach(data=>{
             if(data.store_date){
@@ -932,7 +932,7 @@ export class PosProductService{
   //Product Local
   product_categories_list({product=[],cate_id=[]}){
     return new Promise<any>((resolve,reject)=>{
-       this._query.product_categories_list({product,cate_id}).then(callback=>{
+       this._data.product_categories_list({product,cate_id}).then(callback=>{
          if(callback){
           this.redux.changeProducts({ product_list:callback });
          }

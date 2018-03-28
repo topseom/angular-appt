@@ -32,7 +32,7 @@ export class EcateFormService{
   constructor(public site:SiteService,public _insert:InsertService,public loadingCtrl:LoadingController,public alertCtrl:AlertController,public _storage:StorageService,public event:Events,public toastCtrl:ToastController){}
 
   showConfig(){
-    this.site.showConfig();
+    //this.site.showConfig();
   }
 
   //DataSet
@@ -116,18 +116,20 @@ export class EcateFormService{
   }
 
 
-  user_form_insert(data,load=true){
+  user_form_insert(data,type,load=true){
     return new Promise<any>((resolve,reject)=>{
-      this._insert.user_form_json_insert(data,load).then(callback=>{
+      resolve(1);
+      /*this._insert.user_form({data,type,load}).then(callback=>{
         resolve(callback);
-      });
+      });*/
     });
   }
   user_form_firebase_insert(data,type,load=true){
     return new Promise<any>((resolve,reject)=>{
-      this._insert.user_form_firebase_insert(data,type,load).then(callback=>{
+      resolve(1);
+      /*this._insert.user_form({data,type,load}).then(callback=>{
         resolve(callback);
-      });
+      });*/
     });
   }
 
@@ -171,50 +173,42 @@ export class EcateFormService{
         }
     });
   }
-  sendForm(form1,form2,type){
-    return new Promise<any>((resolve,reject)=>{
-      let data = {"json":form1,"firebase":form2,"type":type};
-      this._storage.getSetting().then(setting=>{
-        if(setting.offline){
-          let alert = this.alertCtrl.create({
-            title:"Attention",
-            message:"Please online to send data!",
-            buttons:[{
-              text:"oK"
-            }]
-          });
-          alert.present();
-        }else{
-          this._insert.user_form_insert_to_firebase(data).then(callback=>{
-            if(callback){
-              this.removeForm(type+'1').then(callback=>{
-                        resolve(1);
-                        let alert = this.alertCtrl.create({
-                        title:"Attention",
-                          message:"Sending Form Successfull!",
-                          buttons:[{
-                            text:"oK"
-                          }]
-                        });
-                        alert.present();
-              });
-            }else{
-                resolve(0);
-                let alert = this.alertCtrl.create({
-                  title:"Attention",
-                  message:"Sending Form Failure!",
-                  buttons:[{
-                    text:"oK"
-                  }]
-                });
-                alert.present();
-            }
-          });
-        }
-        
+
+  async sendForm(form1,form2,type){
+    let setting = await this._storage.getSetting();
+    if(setting.offline){
+      let alert = this.alertCtrl.create({
+        title:"Attention",
+        message:"Please online to send data!",
+        buttons:[{
+          text:"oK"
+        }]
       });
-      
+      alert.present();
+    }
+    let callback = await this._insert.user_form({data:form1,other_data:form2,type});
+    console.log("CALLBACK",callback);
+    if(callback){
+      await this.removeForm(type+'1');
+      let alert = this.alertCtrl.create({
+      title:"Attention",
+          message:"Sending Form Successfull!",
+          buttons:[{
+            text:"oK"
+          }]
+      });
+      alert.present();
+      return(1);
+    }
+    let alert = this.alertCtrl.create({
+        title:"Attention",
+        message:"Sending Form Failure!",
+        buttons:[{
+          text:"oK"
+        }]
     });
+    alert.present();
+    return(0);
   }
 }
 

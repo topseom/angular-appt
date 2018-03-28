@@ -10,7 +10,7 @@ export const DEFAULT_SWIPER_CONFIG: SwiperConfigInterface = {
     direction: 'horizontal',
     slidesPerView: 'auto',
     keyboard: true
-};
+}
 
 @NgModule({
     imports: [

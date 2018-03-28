@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import 'rxjs/add/operator/map';
-import { SiteService,StorageService } from 'ng-prov';
+import { SiteService,StorageService,AuthService } from 'ng-prov';
 import { EcomCouponService} from './coupon';
 
 import { Events } from 'ionic-angular';
@@ -33,7 +33,7 @@ export class EcomCartService{
   textToastRemoveProduct = "remove product in cart success!";
 
   ToastTimeOut = 300;
-  constructor(public _storage:StorageService,public event:Events,public toastCtrl:ToastController,public _site:SiteService,public _coupon:EcomCouponService){}
+  constructor(public _storage:StorageService,public _auth:AuthService,public event:Events,public toastCtrl:ToastController,public _site:SiteService,public _coupon:EcomCouponService){}
 
   // Cart 
   selectProductOption(options:Array<any>,select,index){
@@ -238,7 +238,7 @@ export class EcomCartService{
   setAdress(address:any){
     return new Promise<any>((resolve,reject)=>{
       this.getOrder().then(order=>{
-        this._site.getUser().then(user=>{
+        this._auth.getUser().then(user=>{
           if(order){
             order.user = user;
             order.address = address;

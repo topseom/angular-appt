@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { QueryService,SiteService,StorageService } from 'ng-prov';
+import { QueryService,SiteService,StorageService,AuthService,DataService } from 'ng-prov';
 import { Events } from 'ionic-angular';
 import { AlertController } from 'ionic-angular';
 import { ToastController } from 'ionic-angular';
@@ -11,12 +11,12 @@ import 'rxjs/add/operator/map';
 @Injectable()
 export class EcomCouponService{
   titleCoupon = "ecom_coupon";
-  constructor(public _storage:StorageService,public toastCtrl:ToastController,public _site:SiteService,public event:Events,public loadCtrl:LoadingController,public _query:QueryService,public alertCtrl:AlertController){}
+  constructor(public _storage:StorageService,public _auth:AuthService,public _data:DataService,public toastCtrl:ToastController,public _site:SiteService,public event:Events,public loadCtrl:LoadingController,public _query:QueryService,public alertCtrl:AlertController){}
   
   couponActive(coupon,cartItems,total){
     return new Promise((resolve, reject) => {
       if(!coupon){
-          this._site.getUser().then(user=>{
+          this._auth.getUser().then(user=>{
             if(user){
               let alert = this.alertCtrl.create({
               title: 'Coupon Active',
@@ -100,19 +100,18 @@ export class EcomCouponService{
     let loader = this.loadCtrl.create();
     loader.present();
     return new Promise((resolve, reject) => {
-        console.log(title);
-        this._query.product_coupon({title:title}).then(callback=>{
+        this._data.product_coupon({title:title,load:false,offlineMode:false}).then(callback=>{
           if(callback){
               let promotion = callback;
 
               
                   
-              this._query.product_couponUsed({id:promotion.id}).then(limit=>{
+              this._data.product_couponUsed({id:promotion.id,load:false,offlineMode:false}).then(limit=>{
                   let limit_used = (limit as any).length;
                   let limit_use = parseInt(promotion.conditions.coupon_limit);
                   if(limit_used > limit_use){
                   //if(limit_used < limit_use){
-                      this._query.product_couponTime({userId:user.id,id:promotion.id}).then(number=>{
+                      this._data.product_couponTime({userId:user.id,id:promotion.id,load:false,offlineMode:false}).then(number=>{
                             number = (number as any).length;
                             // condition
                             let conditions = (promotion as any).conditions;
