@@ -10,6 +10,10 @@ export { PosModule } from './modules/pos/pos.module';
 export { PosProductService } from './modules/pos/providers/product';
 export { PosRedux } from './modules/pos/providers/redux';
 
+export { PoslModule } from './modules/posl/posl.module';
+export { PoslProductService } from './modules/posl/providers/product';
+export { PoslRedux } from './modules/posl/providers/redux';
+
 export { ListingModule } from './modules/listing/listing.module';
 export { ListingWishlistService } from './modules/listing/providers/wishlist';
 
