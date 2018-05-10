@@ -99,30 +99,36 @@ export class PoslProductService{
   
   productStore(){
     return new Promise<any>((resolve,reject)=>{
-      this._data.product_listAll({}).then(items=>{
-        this.getStore().then(store=>{
-          if(store){
-            let store_id = store.id || false;
-            if(store.product_all && store.product_all.value != 'Yes')
-            {
-                let filter = [];
-                items.forEach(data=>{
-                  if(data.store_array != 0 && data.store_array != undefined)
-                  {
-                      data.store_array.forEach(data2=>{
-                        if(store_id == data2)
-                        {
-                          filter.push(data);
-                        }
-                      }); 
-                  }
-                });
-            }
-          }
-          this.redux.changeProducts({ product_list: items,temp: items});
-          resolve(items);
-        });
+      this._data.listing_listAll({}).then(items=>{
+        //console.log("LISTING LISTTT!",items);
+        this.redux.changeProducts({ product_list: items,temp: items});
+        resolve(items);
       });
+      // this._data.product_listAll({}).then(items=>{
+      //   this.getStore().then(store=>{
+      //     if(store){
+      //       let store_id = store.id || false;
+      //       if(store.product_all && store.product_all.value != 'Yes')
+      //       {
+      //           let filter = [];
+      //           items.forEach(data=>{
+      //             if(data.store_array != 0 && data.store_array != undefined)
+      //             {
+      //                 data.store_array.forEach(data2=>{
+      //                   if(store_id == data2)
+      //                   {
+      //                     filter.push(data);
+      //                   }
+      //                 }); 
+      //             }
+      //           });
+      //       }
+      //     }
+      //     this.redux.changeProducts({ product_list: items,temp: items});
+      //     resolve(items);
+      //   });
+      // });
+
     });
   }
   

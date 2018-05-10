@@ -17,4 +17,7 @@ export { PoslRedux } from './modules/posl/providers/redux';
 export { ListingModule } from './modules/listing/listing.module';
 export { ListingWishlistService } from './modules/listing/providers/wishlist';
 
+export { ChatModule } from './modules/chat/chat.module';
+export { ChatDataService } from './modules/chat/providers/chat';
+
 export { Menu } from './config/menu-erp';
