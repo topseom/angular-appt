@@ -27,23 +27,6 @@ export class ChatDataService{
     public _query:QueryService,
     public loadingController: LoadingController){}
 
-
-  /*getSite(){
-    return new Promise<any>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(site);
-      });
-    });
-  }
-
-  getUserCurent(){
-     return new Promise<any>((resolve,reject)=>{
-      this._site.getUser().then(user=>{
-        resolve(user);
-      });
-    });
-  }*/
-
   // Get all users
   async getUsers(realtime=false) {
     return <Observable<any>> await 
@@ -298,64 +281,31 @@ export class ChatDataService{
     let loggedInUserId = user.id;
     await this.deleteFriendRequest(userId);
     this.loadingShow();
-    
-    let account = await this.getUser(loggedInUserId);
-    var friends = account.friends;
-    if (!friends) {
-      friends = [userId];
-    } else {
-      friends.push(userId);
+    try{
+      let account = await this.getUser(loggedInUserId);
+      var friends = account.friends;
+      if (!friends) {
+        friends = [userId];
+      } else {
+        friends.push(userId);
+      }
+      await this._update.db(new Query(table.accounts+'/'+loggedInUserId,new Options({ data:{friends:friends} })));
+      
+      account = await this.getUser(userId);
+      var friends = account.friends;
+      if (!friends) {
+        friends = [loggedInUserId];
+      } else {
+        friends.push(loggedInUserId);
+      }
+      await this._update.db(new Query(table.accounts+'/'+userId,new Options({ data:{friends:friends} })));
+      this.loadingHide();
+      return 1;
+    }catch(err){
+      this.loadingHide();
+      return Promise.reject(err);
     }
-
-    // DO AT HERE
-    
-    /*this._site.getUser().then(user=>{
-      let loggedInUserId = user.id;
-      this.deleteFriendRequest(userId);
-
-      this.loadingShow();
-      this.getUser(loggedInUserId).then(accountFriendSup=>{
-        accountFriendSup.take(1).subscribe(account=>{
-            var friends = account.friends;
-            if (!friends) {
-              friends = [userId];
-            } else {
-              friends.push(userId);
-            }
-            // Add both users as friends.
-            this.getUser(loggedInUserId).then(friendsSup=>{
-              friendsSup.update({
-               friends: friends
-              }).then((success) => {
-                this.getUser(userId).then(accountSup=>{
-                  accountSup.take(1).subscribe(account=>{
-                    var friends = account.friends;
-                    if (!friends) {
-                      friends = [loggedInUserId];
-                    } else {
-                      friends.push(loggedInUserId);
-                    }
-                    this.getUser(userId).then(userSup=>{
-                      userSup.update({
-                      friends: friends
-                      }).then((success) => {
-                        this.loadingHide();
-                      }).catch((error) => {
-                        this.loadingHide();
-                      });
-                    })
-                  });
-                });
-              }).catch((error) => {
-                this.loadingHide();
-              });
-            });
-        });
-      });
-
-    });*/
-    // Delete friend request.
-    
+    // DO AT HERE  
   }
 
   //Loading
