@@ -40,6 +40,7 @@ export class ChatDataService{
       let user = <any> await this._auth.getUser();
       let account = await this._query.query(table.accounts+'/'+user.id,new Options({type:'object'}));
       if(!account){
+         this.loadingShow();
          var userId, username, img, email,description;
          userId = user.id;
          if(user.image){
@@ -50,18 +51,24 @@ export class ChatDataService{
          email = user.email;
          username = user.username;
          description = "I'm Available for chat";
-         await this._insert.db(new Query(table.accounts,new Options({ loading:false,type:"post",
-          data:{
-            id: userId,
-            name: username,
-            username: username,
-            img: img,
-            email: email,
-            description: description,
-            dateCreated: new Date().toString()
-          }}
-         )))
-         return 1;
+         try{
+          await this._insert.db(new Query(table.accounts,new Options({ loading:false,method:"post",
+            data:{
+              id: userId,
+              name: username,
+              username: username,
+              img: img,
+              email: email,
+              description: description,
+              dateCreated: new Date().toString()
+            }}
+          )))
+          this.loadingHide();
+          return 1;
+         }catch(err){
+          this.loadingHide();
+          return Promise.reject(err);
+         }
       }else{
         return 1;
       }
@@ -86,6 +93,9 @@ export class ChatDataService{
 
   async getUser(userId="",realtime=false) {
     let user = await this._auth.getUser();
+    if(userId){
+      user.id = userId;
+    }
     return <any> await
     this._query.query(table.accounts+'/'+user.id,new Options({
       realtime,
@@ -95,6 +105,9 @@ export class ChatDataService{
 
   async getRequests(userId="",realtime=false) {
     let user = await this._auth.getUser();
+    if(userId){
+      user.id = userId;
+    }
     return <any> await
     this._query.query(table.requests+'/'+user.id,new Options({
       realtime,
@@ -119,6 +132,12 @@ export class ChatDataService{
       type:'object'
     }))
   }
+
+  async updateAccountsConversationUser(userId,data){
+    let user = await this._auth.getUser();
+    return <any> await
+    this._update.db(new Query(table.accounts+'/'+user.id+'/'+table.conversations,new Options({ data:{...data,id:userId},loading:false })));
+  }
   
   async getAccountsConversationUserSender(userId){
     let user = await this._auth.getUser();
@@ -127,7 +146,12 @@ export class ChatDataService{
       realtime:true,
       type:'object'
     }))
-   
+  }
+
+  async updateAccountsConversationUserSender(userId,data){
+    let user = await this._auth.getUser();
+    return <any> await
+    this._update.db(new Query(table.accounts+'/'+userId+'/'+table.conversations,new Options({ data:{...data,id:user.id},loading:false })));
   }
 
   // Get conversation given the conversationId.
@@ -139,13 +163,18 @@ export class ChatDataService{
     }))
   }
 
+  async updateConversation(conversationId,data){
+    let user = await this._auth.getUser();
+    return <any> await
+    this._update.db(new Query(table.conversations+'/'+conversationId,new Options({ data:data,loading:false })));
+  }
+
   // Get conversations of the current logged in user.
   async getConversations() {
     let user = await this._auth.getUser();
     return <Observable<any>> await
     this._query.query(table.accounts+'/'+user.id+'/'+table.conversations,new Options({
-      realtime:true,
-      type:'object'
+      realtime:true
     }));
   }
 
@@ -154,6 +183,11 @@ export class ChatDataService{
     this._query.query(table.conversations,new Options({
       realtime:true
     }));
+  }
+
+  async insertConversationsAll(data){
+    return <any> await
+    this._insert.db(new Query(table.conversations,new Options({method:'push',data:data})))
   }
 
 
@@ -199,26 +233,26 @@ export class ChatDataService{
     let loggedInUserId = user.id;
     this.loadingShow();
     let requestsSent = [];
-    let requests = await this.getRequests(loggedInUserId);
-    requestsSent = requests.requestsSent;
-    if (!requestsSent) {
-      requestsSent = [userId];
-    } else {
-      if(requestsSent.indexOf(userId) == -1)
-        requestsSent.push(userId);
-    }
     try{
-      await this._update.db(new Query(table.requests+'/'+loggedInUserId,new Options({ loading:false,data:{requestsSent:requestsSent} })));
+      let requests = await this.getRequests(loggedInUserId);
+      requestsSent = requests?requests.requestsSent:false ;
+      if (!requestsSent) {
+        requestsSent = [userId];
+      } else {
+        if(requestsSent.indexOf(userId) == -1)
+          requestsSent.push(userId);
+      }
+      await this._update.db(new Query(table.requests,new Options({ loading:false,data:{id:loggedInUserId,requestsSent:requestsSent} })));
       var friendRequests;
       requests = await this.getRequests(userId);
-      friendRequests = requests.friendRequests;
+      friendRequests = requests?requests.friendRequests:false;
       if (!friendRequests) {
         friendRequests = [loggedInUserId];
       } else {
         if(friendRequests.indexOf(userId) == -1)
           friendRequests.push(loggedInUserId);
       }
-      await this._update.db(new Query(table.requests+'/'+userId,new Options({ loading:false,data:{friendRequests:friendRequests} })));
+      await this._update.db(new Query(table.requests,new Options({ loading:false,data:{id:userId,friendRequests:friendRequests} })));
       this.loadingHide();
       this._alert.showFriendRequestSent();
       return 1;
@@ -236,14 +270,15 @@ export class ChatDataService{
     var requestsSent;
     try{
       let requests = await this.getRequests(loggedInUserId);
-      requestsSent = requests.requestsSent;
+      requestsSent = requests?requests.requestsSent:false;
       requestsSent.splice(requestsSent.indexOf(userId), 1);
-      await this._update.db(new Query(table.requests+'/'+loggedInUserId,new Options({ loading:false,data:{requestsSent:requestsSent} })));
+      await this._update.db(new Query(table.requests,new Options({ loading:false,data:{id:loggedInUserId,requestsSent:requestsSent} })));
       var friendRequests;
+
       requests = await this.getRequests(userId);
-      friendRequests = requests.friendRequests;
+      friendRequests = requests?requests.friendRequests:false;
       friendRequests.splice(friendRequests.indexOf(loggedInUserId), 1);
-      await this._update.db(new Query(table.requests+'/'+userId,new Options({ loading:false,data:{friendRequests:friendRequests} })));
+      await this._update.db(new Query(table.requests,new Options({ loading:false,data:{id:userId,friendRequests:friendRequests} })));
       this.loadingHide();
       this._alert.showFriendRequestRemoved();
       return 1;
@@ -261,12 +296,14 @@ export class ChatDataService{
     var friendRequests;
     try{
       let requests = await this.getRequests(loggedInUserId);
-      friendRequests = requests.friendRequests;
+      friendRequests = requests?requests.friendRequests:false;
       friendRequests.splice(friendRequests.indexOf(userId), 1);
-      await this._update.db(new Query(table.requests+'/'+loggedInUserId,new Options({data:{ friendRequests: friendRequests } })));
-      let requestsSent = requests.requestsSent;
+      await this._update.db(new Query(table.requests,new Options({data:{ id:loggedInUserId,friendRequests: friendRequests } })));
+      
+      requests = await this.getRequests(userId);
+      let requestsSent = requests?requests.requestsSent:false;
       requestsSent.splice(requestsSent.indexOf(loggedInUserId), 1);
-      await this._update.db(new Query(table.requests+'/'+userId,new Options({data:{ requestsSent: requestsSent } })));
+      await this._update.db(new Query(table.requests,new Options({data:{ id:userId,requestsSent: requestsSent } })));
       this.loadingHide();
       return 1;
     }catch(err){
@@ -283,22 +320,22 @@ export class ChatDataService{
     this.loadingShow();
     try{
       let account = await this.getUser(loggedInUserId);
-      var friends = account.friends;
+      var friends = account?account.friends:false;
       if (!friends) {
         friends = [userId];
       } else {
         friends.push(userId);
       }
-      await this._update.db(new Query(table.accounts+'/'+loggedInUserId,new Options({ data:{friends:friends} })));
+      await this._update.db(new Query(table.accounts,new Options({ data:{id:loggedInUserId,friends:friends} })));
       
       account = await this.getUser(userId);
-      var friends = account.friends;
+      var friends = account?account.friends:false;
       if (!friends) {
         friends = [loggedInUserId];
       } else {
         friends.push(loggedInUserId);
       }
-      await this._update.db(new Query(table.accounts+'/'+userId,new Options({ data:{friends:friends} })));
+      await this._update.db(new Query(table.accounts,new Options({ data:{id:userId,friends:friends} })));
       this.loadingHide();
       return 1;
     }catch(err){
@@ -322,405 +359,6 @@ export class ChatDataService{
       this.loading = null;
     }
   }
-
-  //createUser
-  /*createUserData(){
-    return new Promise<any>((resolve,reject)=>{
-      this._site.getUser().then(user=>{
-        this._site.getSite().then(site=>{
-          firebase.database().ref(site+'/chat_accounts/' + user.id).once('value')
-            .then((account) => {
-              if (!account.val()) {
-                this.loadingShow();
-                
-                var userId, username, img, email;
-                userId = user.id;
-                if(user.image){
-                  img = user.image;
-                }else{
-                  img = "assets/img/theme/chat/theme1/profile.png";
-                }
-                email = user.email;
-                username = user.username;
-                let description = "I'm Available for chat";
-                this.angularfire.object(site+'/chat_accounts/' + user.id).set({
-                  userId: userId,
-                  name: username,
-                  username: username,
-                  img: img,
-                  email: email,
-                  description: description,
-                  dateCreated: new Date().toString()
-                }).then(() => {
-                  this.loadingHide();
-                  resolve(1);
-                });
-                this.loadingHide();
-                resolve(1);
-              }else{
-                resolve(1);
-              }
-            });
-          });
-        })
-    }); 
-  }
-
-  // Get user with username
-  getUserWithUsername(username) {
-    return new Promise<FirebaseListObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(this.angularfire.list(site+'/chat_accounts', {
-          query: {
-            orderByChild: 'username',
-            equalTo: username
-          }
-        }));
-      });
-    });
-  }
-
-  // Get logged in user data
-  getCurrentUser() {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-          resolve(this.angularfire.object(site+'/chat_accounts/' + user.id));
-        });
-      });
-    });
-  }
-
-  // Get user by their userId
-  getUser(userId="") {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-          if(!userId){
-            userId = user.id;
-          }
-          resolve(this.angularfire.object(site+'/chat_accounts/' + userId));
-        });
-      });
-    });
-  }
-
-  // Get requests given the userId.
-  getRequests(userId="") {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-          if(!userId){
-            userId = user.id;
-          }
-          resolve(this.angularfire.object(site+'/chat_requests/' + userId));
-        });
-      });
-    });
-  }
-
-  // Get friend requests given the userId.
-  getFriendRequests(userId) {
-    return new Promise<FirebaseListObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(this.angularfire.list(site+'/chat_requests', {
-          query: {
-            orderByChild: 'receiver',
-            equalTo: userId
-          }
-        }));
-      });
-    });
-  }
-
-  getAccountsConversationUser(userId){
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-           resolve(this.angularfire.object(site+'/chat_accounts/' + user.id + '/conversations/'+userId));
-        });
-      });
-    });
-  }
-  getAccountsConversationUserSender(userId){
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-           resolve(this.angularfire.object(site+'/chat_accounts/' + userId + '/conversations/'+user.id));
-        });
-      });
-    });
-  }
-
-  // Get conversation given the conversationId.
-  getConversation(conversationId) {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(this.angularfire.object(site+'/chat_conversations/' + conversationId));
-      });
-    });
-  }
-
-  // Get conversations of the current logged in user.
-  getConversations() {
-    return new Promise<FirebaseListObservable<any>>((resolve,reject)=>{
-        this._site.getSite().then(site=>{
-          this._site.getUser().then(user=>{
-            resolve(this.angularfire.list(site+'/chat_accounts/'+user.id+'/conversations'));
-          })
-        });
-    });
-  }
-
-  getConversationsAll() {
-    return new Promise<FirebaseListObservable<any>>((resolve,reject)=>{
-        this._site.getSite().then(site=>{
-          this._site.getUser().then(user=>{
-            resolve(this.angularfire.list(site+'/chat_conversations'));
-          })
-        });
-    });
-  }
-
-
-  // Get messages of the conversation given the Id.
-  getConversationMessages(conversationId) {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(this.angularfire.object(site+'/chat_conversations/' + conversationId + '/messages'));
-      });
-    });
-  }
-
-  // Get messages of the group given the Id.
-  getGroupMessages(groupId) {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        resolve(this.angularfire.object(site+'/chat_groups/' + groupId + '/messages'));
-      });
-    });
-  }
-
-  // Get groups of the logged in user.
-  getGroups() {
-    return new Promise<FirebaseListObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-        this._site.getUser().then(user=>{
-          resolve(this.angularfire.list(site+'/chat_accounts/'+user.id+'/groups'));
-        });
-      });
-    });
-  }
-
-  // Get group info given the groupId.
-  getGroup(groupId) {
-    return new Promise<FirebaseObjectObservable<any>>((resolve,reject)=>{
-      this._site.getSite().then(site=>{
-       resolve(this.angularfire.object(site+'/chat_groups/' + groupId));
-      });
-    });
-  }
-
-   // Send friend request to userId.
-  sendFriendRequest(userId) {
-    this._site.getUser().then(user=>{
-      this._site.getSite().then(site=>{
-        let loggedInUserId = user.id;
-        this.loadingShow();
-
-        var requestsSent;
-        // Use take(1) so that subscription will only trigger once.
-        this.getRequests(loggedInUserId).then(requestsSup=>{
-          requestsSup.take(1).subscribe(requests=>{
-            requestsSent = requests.requestsSent;
-            if (!requestsSent) {
-              requestsSent = [userId];
-            } else {
-              if(requestsSent.indexOf(userId) == -1)
-                requestsSent.push(userId);
-            }
-            // Add requestsSent information.
-            this.angularfire.object(site+'/chat_requests/' + loggedInUserId).update({
-              requestsSent: requestsSent
-            }).then((success) => {
-              var friendRequests;
-              this.getRequests(userId).then(friendRequestsSup=>{
-                friendRequestsSup.take(1).subscribe(requests=>{
-                    friendRequests = requests.friendRequests;
-                    if (!friendRequests) {
-                      friendRequests = [loggedInUserId];
-                    } else {
-                      if(friendRequests.indexOf(userId) == -1)
-                        friendRequests.push(loggedInUserId);
-                    }
-                    // Add friendRequest information.
-                    this.angularfire.object(site+'/chat_requests/' + userId).update({
-                      friendRequests: friendRequests
-                    }).then((success) => {
-                      this.loadingHide();
-                      this._alert.showFriendRequestSent();
-                    }).catch((error) => {
-                      this.loadingHide();
-                    });
-                });
-              });
-            }).catch((error) => {
-              this.loadingHide();
-            });
-          });
-        });
-      });
-    });
-  }
-
-  // Cancel friend request sent to userId.
-  cancelFriendRequest(userId) {
-    this._site.getUser().then(user=>{
-      this._site.getSite().then(site=>{
-        let loggedInUserId = user.id;
-        this.loadingShow();
-          var requestsSent;
-          this.getRequests(loggedInUserId).then(requestsSentSup=>{
-            requestsSentSup.take(1).subscribe(requests=>{
-              requestsSent = requests.requestsSent;
-              requestsSent.splice(requestsSent.indexOf(userId), 1);
-              // Update requestSent information.
-              this.angularfire.object(site+'/chat_requests/' + loggedInUserId).update({
-                requestsSent: requestsSent
-              }).then((success) => {
-                var friendRequests;
-                this.getRequests(userId).then(requestsSup=>{
-                  requestsSup.take(1).subscribe(requests=>{
-                    friendRequests = requests.friendRequests;
-                    friendRequests.splice(friendRequests.indexOf(loggedInUserId), 1);
-                    // Update friendRequests information.
-                    this.angularfire.object(site+'/chat_requests/' + userId).update({
-                      friendRequests: friendRequests
-                    }).then((success) => {
-                      this.loadingHide();
-                      this._alert.showFriendRequestRemoved();
-                    }).catch((error) => {
-                      this.loadingHide();
-                    });
-                  });
-                });
-              }).catch((error) => {
-                this.loadingHide();
-              });
-            });
-          });
-      });
-    });
-    
-  }
-
-  // Delete friend request.
-  deleteFriendRequest(userId) {
-    this._site.getUser().then(user=>{
-      this._site.getSite().then(site=>{
-        let loggedInUserId = user.id;
-        this.loadingShow();
-
-        var friendRequests;
-        this.getRequests(loggedInUserId).then(requestsSup=>{
-          requestsSup.take(1).subscribe(requests=>{
-             friendRequests = requests.friendRequests;
-              friendRequests.splice(friendRequests.indexOf(userId), 1);
-              // Update friendRequests information.
-              this.angularfire.object(site+'/chat_requests/' + loggedInUserId).update({
-                friendRequests: friendRequests
-              }).then((success) => {
-                var requestsSent;
-                this.getRequests(userId).then(requestsSentSup=>{
-                  requestsSentSup.take(1).subscribe(requests=>{
-                     requestsSent = requests.requestsSent;
-                     requestsSent.splice(requestsSent.indexOf(loggedInUserId), 1);
-                     this.angularfire.object(site+'/chat_requests/' + userId).update({
-                        requestsSent: requestsSent
-                      }).then((success) => {
-                        this.loadingHide();
-
-                      }).catch((error) => {
-                        this.loadingHide();
-                      });
-                  });
-                })
-              }).catch((error) => {
-                this.loadingHide();
-                //TODO ERROR
-              });
-          });
-        })
-      });
-    });
-  }
-
-  // Accept friend request.
-  acceptFriendRequest(userId) {
-    this._site.getUser().then(user=>{
-      let loggedInUserId = user.id;
-      this.deleteFriendRequest(userId);
-
-      this.loadingShow();
-      this.getUser(loggedInUserId).then(accountFriendSup=>{
-        accountFriendSup.take(1).subscribe(account=>{
-            var friends = account.friends;
-            if (!friends) {
-              friends = [userId];
-            } else {
-              friends.push(userId);
-            }
-            // Add both users as friends.
-            this.getUser(loggedInUserId).then(friendsSup=>{
-              friendsSup.update({
-               friends: friends
-              }).then((success) => {
-                this.getUser(userId).then(accountSup=>{
-                  accountSup.take(1).subscribe(account=>{
-                    var friends = account.friends;
-                    if (!friends) {
-                      friends = [loggedInUserId];
-                    } else {
-                      friends.push(loggedInUserId);
-                    }
-                    this.getUser(userId).then(userSup=>{
-                      userSup.update({
-                      friends: friends
-                      }).then((success) => {
-                        this.loadingHide();
-                      }).catch((error) => {
-                        this.loadingHide();
-                      });
-                    })
-                  });
-                });
-              }).catch((error) => {
-                this.loadingHide();
-              });
-            });
-        });
-      });
-
-    });
-    // Delete friend request.
-    
-  }
-
-  //Loading
-  loadingShow() {
-    if (!this.loading) {
-      this.loading = this.loadingController.create(this.spinner);
-      this.loading.present();
-    }
-  }
-  //Hide loading
-  loadingHide() {
-    if (this.loading) {
-      this.loading.dismiss();
-      this.loading = null;
-    }
-  }*/
-
 }
 
 
